@@ -12,8 +12,8 @@
 #include "../Utils/Output.h"
 #endif
 
-#ifndef ADDRINFO
-#include "../Utils/AddrInfo.h"
+#ifndef Address
+#include "../Utils/Address.h"
 #endif
 
 #ifndef CONNECTION
@@ -26,12 +26,12 @@ private:
   /**
    * DTO holds server info and provides easy interface to extract data from it
    */
-  AddrInfo *address; // struct holding server info
+  Address *address; // struct holding server info
   /**
    * Socket file descriptor
    */
   int sock;
-  Connection *conn;
+  Channel *conn;
 
 public:
   /**
@@ -48,7 +48,7 @@ public:
 
 Client::Client(char *ip, char *port)
 {
-  address = new AddrInfo(ip, port);
+  address = new Address(ip, port);
 
   sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock == -1)
@@ -59,7 +59,7 @@ Client::Client(char *ip, char *port)
 
   Output::showSuccess("Connected successfully");
 
-  conn = new Connection(sock);
+  conn = new Channel(sock);
 }
 
 void Client::upload(string path) {

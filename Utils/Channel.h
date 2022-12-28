@@ -3,7 +3,7 @@
 #include <netdb.h>
 #include <unistd.h>
 
-#define CONNECTION
+#define CHANNEL
 
 #ifndef OUTPUT
 #include "Output.h"
@@ -14,28 +14,32 @@
 /**
  * Entity easier the communication processes
 */
-class Connection
+class Channel
 {
 private:
   int sock;
+  Address dist;
   char buf[MAX_SIZE];
 
 public:
-  Connection();
-  Connection(int id);
-  void handle();
+  Channel();
+  Channel(int id);
+
   void echo(string msg);
   char* recv();
 };
 
-Connection::Connection(){}
-
-Connection::Connection(int id)
+Channel::Channel(int sock, char filename[])
 {
-  sock = id;
+  this->sock = sock;
+  this->filename = filename;
+  if(!file_exists(String(filename))){
+    Output::showError("File Not Found");
+    this->echo("Not Found");
+  }
 }
 
-void Connection::echo(string msg){
+void Channel::echo(string msg){
   char* p = &msg[0];
   int len = send(sock, p, strlen(p), 0);
   if(len > 0)
@@ -45,11 +49,11 @@ void Connection::echo(string msg){
 
 };
 
-char* Connection::recv(){
+char* Channel::recv(){
+  ssize_t num_bytes = recvfrom(src, buf, MAX_SIZE - 1, 0, dist->format(), dist->getLength());
 
-  long long num_bytes = read(sock, buf, MAX_SIZE - 1);
   if(num_bytes == -1)
-    Output::showError("read");
+    Output::showError("recvfrom");
 
   return buf;
 }

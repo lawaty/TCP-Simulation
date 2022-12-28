@@ -4,17 +4,17 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
-#define ADDR_INFO
+#define ADDRESS
 
 /**
  * DTO for clarity
  */
-class AddrInfo
+class Address
 {
 public:
   struct sockaddr_in address;
 
-  AddrInfo(char* ip, char* port)
+  Address(char* ip, char* port)
   {
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = ip != NULL ? inet_addr(ip): INADDR_ANY;

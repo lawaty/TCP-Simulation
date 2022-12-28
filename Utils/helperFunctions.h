@@ -1,7 +1,3 @@
-#define PLAIN "text/plain"
-#define HTML "text/html"
-#define IMAGE "image/png"
-
 vector<string> split(string str)
 {
 	string buf;
@@ -15,7 +11,7 @@ vector<string> split(string str)
 	return splitted;
 }
 
-bool pathExists(string path)
+bool fileExists(string path)
 {
 	ifstream s;
 	path = "./" + path;

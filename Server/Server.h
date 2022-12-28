@@ -12,29 +12,17 @@
 #include "../Utils/Output.h"
 #endif
 
-#ifndef ADDRINFO
-#include "../Utils/AddrInfo.h"
+#ifndef ADDRESS
+#include "../Utils/Address.h"
 #endif
 
-#ifndef CONNECTION
-#include "../Utils/Connection.h"
+#ifndef CHANNEL
+#include "../Utils/Channel.h"
 #endif
 
-#define MAX_QUEUE 5
+#define MAX_QUERY_SIZE 100
 
 using namespace std;
-
-void handleConnection(int sock)
-{
-  Connection conn(sock);
-  vector<string> splitted = split(conn.recv());
-
-  if(splitted[0] == "GET")
-    conn.echo(handleGet(splitted[1]));
-
-  else if(splitted[0] == "POST")
-    conn.echo(handlePost(splitted[1], conn));
-}
 
 class Server
 {
@@ -42,7 +30,7 @@ private:
   /**
    * DTO holds server info and provides easy interface to extract data from it
    */
-  AddrInfo *address; // struct holding server info
+  Address *address; // struct holding server info
   /**
    * Socket file descriptor
    */
@@ -56,8 +44,13 @@ public:
    * @param char[] port
    */
   Server(char *ip, char *port);
+
   /**
-   * Method initializes listeners and manager connection requests
+   * Method Listens for incoming connections
+   */
+  void listen();
+  /**
+   * Method initializes and manages connection requests
    */
   void start();
   /**
@@ -68,15 +61,38 @@ public:
 
 Server::Server(char *ip, char *port) // initializing the server
 {
-  address = new AddrInfo(ip, port);
+  address = new Address(ip, port);
 
   cout << "Initialized server successfully with ip: " << address->getIP() << " and port " << address->getPort() << endl;
 }
 
+void Server::listen()
+{
+  char filename[MAX_QUERY_SIZE];
+  ssize_t num_bytes = recvfrom(src, buf, MAX_QUERY_SIZE - 1, 0, dist->format(), dist->getLength());
+
+  if (num_bytes < 1)
+    Output::showError("Weird query");
+
+  int conn_id = socket(AF_INET, SOCK_DGRAM, 0);
+
+  if (conn_id == -1)
+    Output::showError("Error Establishing Connection With Client");
+
+  int pid = fork();
+  if (!id)
+  {
+    new Channel(conn_id, filename);
+    // Channel accepted
+    Output::showSuccess("Channel Accepted");
+  }
+
+  else
+    close(pid); // Parent doesn't need the connection descriptor at all
+}
+
 void Server::start()
 {
-  // Starting listener
-
   sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock == -1)
     Output::showError("socket");
@@ -84,38 +100,12 @@ void Server::start()
   if (bind(sock, address->format(), address->getLength()) == -1)
     Output::showError("bind");
 
-  if (listen(sock, MAX_QUEUE) == -1)
-    Output::showError("listen");
 
-  // Accepting Connections
-  struct sockaddr_storage their_addr; // connector address
+  // Accepting Channels
   running = true;
-
   Output::showSuccess("Listening...");
-
   while (running)
-  {
-    socklen_t size = sizeof(their_addr);
-    int conn_id = accept(sock, (struct sockaddr *)&their_addr, &size);
-
-    // Connection rejected
-    if (conn_id == -1)
-    {
-      Output::showError("Initializing communication with client failed", false);
-      continue;
-    }
-
-    // Connection accepted
-    Output::showSuccess("Connection Accepted");
-
-    int id = fork();
-
-    if (!id) // Child process
-      handleConnection(conn_id);
-
-    else
-      close(id); // Parent doesn't need the connection descriptor at all
-  }
+    listen();
 }
 
 void Server::stop()
