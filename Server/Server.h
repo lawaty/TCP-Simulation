@@ -1,6 +1,5 @@
 #include <string>
 #include <vector>
-
 #include <cstring>
 
 #include <sys/types.h>
@@ -20,6 +19,10 @@
 #include "../Utils/Channel.h"
 #endif
 
+#ifndef SM
+#include "../Utils/SM.h"
+#endif
+
 #define MAX_QUERY_SIZE 100
 
 using namespace std;
@@ -27,15 +30,12 @@ using namespace std;
 class Server
 {
 private:
-  /**
-   * DTO holds server info and provides easy interface to extract data from it
-   */
-  Address *address; // struct holding server info
-  /**
-   * Socket file descriptor
-   */
-  int sock;
-  bool running;
+  Address *address; // DTO holds server info
+  int sock; // Socket file descriptor
+  bool running; // flag
+
+  // Congestion control
+  SM machine;
 
 public:
   /**
@@ -82,9 +82,12 @@ void Server::listen()
   int pid = fork();
   if (!id)
   {
-    new Channel(conn_id, filename);
+    new Channel(conn_id);
     // Channel accepted
     Output::showSuccess("Channel Accepted");
+
+    SM* machine = new Machine();
+    
   }
 
   else

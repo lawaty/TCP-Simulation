@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <fstream>
 
-
 #ifndef OUTPUT
 #include "../Utils/Output.h"
 #endif
