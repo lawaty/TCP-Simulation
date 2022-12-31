@@ -9,7 +9,6 @@
 #include "Output.h"
 #endif
 
-
 #define MSS 508
 #define ACK_SIZE 8
 #define CONTENT_SIZE 500
@@ -37,47 +36,48 @@ class Channel
 {
 private:
   int sock;
-  Address dist;
-
-  uint16_t seq_num = 0;
-
-  void echo(char* msg);
-  void echo(string msg);
-  char* recv();
+  Address *dist;
 
 public:
   /**
    * Channel instance initializer
-  */
-  Channel(int sock);
-  void sendPacket(Packet pack);
-  Packet recvPacket();
+   */
+  Channel(int sock, Address *dist);
+  void echo(char *msg);
+  void echoString(string msg);
+  char *recv();
+
+  template <typename PacketType>
+  void sendPacket(PacketType pack);
+  void recvPacket();
 };
 
-Channel::Channel(int sock)
+Channel::Channel(int sock, Address *dist)
 {
   this->sock = sock;
+  this->dist = dist;
 }
 
-void Channel::echo(char* msg)
+void Channel::echo(char *msg)
 {
-  int len = send(sock, p, strlen(p), 0);
-  if (len > 0)
-    cout << "Sent a msg with length " << len << endl;
-  else
-    Output::showError("send");
+  ssize_t len = sendto(sock, msg, strlen(msg), 0, dist->format(), sizeof(struct sockaddr));
+  if (len == -1)
+    Output::showError("sendto");
+    
+  cout << "Sent: " << msg << endl;
 }
 
-void Channel::echo(string msg)
+void Channel::echoString(string msg)
 {
-  char* p = &msg[0];
+  char *p = &msg[0];
   echo(p);
 };
 
-char* Channel::recv()
+char *Channel::recv()
 {
-  char buf[MSS];
-  ssize_t num_bytes = recvfrom(src, buf, MAX_SIZE - 1, 0, dist->format(), dist->getLength());
+  socklen_t addrlen = sizeof(struct sockaddr);
+  char *buf = new char[MSS];
+  ssize_t num_bytes = recvfrom(sock, buf, MSS, 0, dist->format(), &addrlen);
 
   if (num_bytes == -1)
     Output::showError("recvfrom");
@@ -85,22 +85,23 @@ char* Channel::recv()
   return buf;
 }
 
-void Channel::sendPacket(template <typename Packet> pack)
+template <typename PacketType>
+void Channel::sendPacket(PacketType pack)
 {
-  char* buffer = new char[MSS];
+  char *buffer = new char[MSS];
   memset(buffer, 0, MSS);
   memcpy(buffer, &pack, sizeof(pack));
+  cout << buffer;
   echo(buffer);
 }
 
-template <typename Packet> Channel::recvPacket()
+void Channel::recvPacket()
 {
-  char* buf = recv();
-  if(sizeof(buf) == 8)
+  char *buf = recv();
+  if (sizeof(buf) == 8)
     struct AckPacket pack;
   else
     struct DPacket pack;
 
-  pack.seqno = seqNum;
-  pack.len = string(buf).size();
+  cout << buf;
 }

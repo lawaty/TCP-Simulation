@@ -17,7 +17,7 @@
 #endif
 
 #ifndef CONNECTION
-#include "../Utils/Connection.h"
+#include "../Utils/Channel.h"
 #endif
 
 class Client
@@ -31,7 +31,7 @@ private:
    * Socket file descriptor
    */
   int sock;
-  Channel *conn;
+  Channel *channel;
 
 public:
   /**
@@ -41,9 +41,7 @@ public:
    */
   Client(char *ip, char *port);
 
-  void upload(string path);
-
-  void sendRequest(string msg);
+  void requestFile(string filename);
 };
 
 Client::Client(char *ip, char *port)
@@ -54,43 +52,16 @@ Client::Client(char *ip, char *port)
   if (sock == -1)
     Output::showError("socket");
 
-  if (connect(sock, address->format(), address->getLength()) < 0)
-    Output::showError("connect");
-
   Output::showSuccess("Connected successfully");
 
-  conn = new Channel(sock);
+  Address *dist = new Address(ip, port);
+  channel = new Channel(sock, dist);
 }
 
-void Client::upload(string path) {
-  conn->echo("POST " + path);
-
-  conn->recv();
-
-  string line;
-	ifstream s;
-	s.open(path);
-
-  string file_content; 
-	while(getline(s, line))
-		file_content += line + "\n";
-
-  cout << file_content << endl;
-
-  conn->echo(file_content);
-  Output::showSuccess("Sent File Successfully");
-
-}
-
-void Client::sendRequest(string msg)
+void Client::requestFile(string filename)
 {
-  conn->echo(msg);
-  string buffer = string(conn->recv());
+  channel->echoString(filename);
 
-  int index = buffer.find("\n\n");
-  string content = buffer.substr(index+1, buffer.length() - index);
-
-  string path = msg.substr(4, msg.length() - 4);
-
-  saveFile(path, content);
+  // Packet *pack = channel->recvPacket();
+  channel->recvPacket();
 }
